@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "AI Powered Smart Soil Intelligence for Modern Farmers. Measures NPK, Temperature, Humidity, Soil Moisture & AI Fertility Grade.",
 };
 
+import { Providers } from "@/components/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased bg-slate-50 text-slate-900 selection:bg-green-500/30 selection:text-green-900`}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <Providers>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </Providers>
       </body>
     </html>
   );

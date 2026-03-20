@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, ShoppingCart, User, Leaf, Menu, X, ShieldCheck } from "lucide-react";
+import { Search, ShoppingCart, User, Leaf, Menu, X, ShieldCheck, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { cartCount } = useCart();
+    const { data: session, status } = useSession();
     // Prevent hydration mismatch
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -60,10 +62,28 @@ export default function Navbar() {
                             </span>
                         )}
                     </Link>
-                    <Link href="/login" className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:scale-105 transition-transform shadow-md">
-                        <User className="w-4 h-4" />
-                        <span>Login</span>
-                    </Link>
+                    {status === 'authenticated' ? (
+                        <div className="flex items-center gap-3">
+                            {session.user?.role === "Admin" && (
+                                <Link href="/admin" className="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:scale-105 transition-transform shadow-md">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <span>Admin Panel</span>
+                                </Link>
+                            )}
+                            <Link href="/dashboard" className="flex items-center gap-2 bg-slate-100 text-slate-800 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-200 transition-colors">
+                                <User className="w-4 h-4" />
+                                <span>{session.user?.name || "Dashboard"}</span>
+                            </Link>
+                            <button onClick={() => signOut()} className="text-slate-400 hover:text-rose-500 transition-colors">
+                                <LogOut className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <Link href="/login" className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:scale-105 transition-transform shadow-md">
+                            <User className="w-4 h-4" />
+                            <span>Login</span>
+                        </Link>
+                    )}
                 </div>
 
                 {/* Mobile Toggle */}
@@ -97,10 +117,22 @@ export default function Navbar() {
                                     </span>
                                 )}
                             </Link>
-                            <Link href="/login" className="ml-auto flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium">
-                                <User className="w-4 h-4" />
-                                Login
-                            </Link>
+                            {status === 'authenticated' ? (
+                                <div className="ml-auto flex items-center gap-2">
+                                    <Link href="/dashboard" className="flex items-center gap-2 bg-slate-100 text-slate-800 px-4 py-2 rounded-full text-sm font-medium">
+                                        <User className="w-4 h-4" />
+                                        <span>Dashboard</span>
+                                    </Link>
+                                    <button onClick={() => signOut()} className="text-slate-400 p-2">
+                                        <LogOut className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <Link href="/login" className="ml-auto flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+                                    <User className="w-4 h-4" />
+                                    Login
+                                </Link>
+                            )}
                         </div>
                     </motion.div>
                 )}

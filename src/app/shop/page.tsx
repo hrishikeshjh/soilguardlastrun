@@ -8,34 +8,32 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 
-const products = [
-    { id: 1, name: "Vermi compost", weight: "250 g", price: 30, img: "https://5.imimg.com/data5/SELLER/Default/2021/2/CU/UB/ZH/5050723/vermi-compost.jpg" },
-    { id: 2, name: "Horn and hoof meal", weight: "100 g", price: 20, img: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?q=80&w=400&auto=format&fit=crop" },
-    { id: 3, name: "Bone Rust", weight: "100 g", price: 20, img: "https://images.immediate.co.uk/production/volatile/sites/10/2019/04/2048x1365-How-to-plant-a-tree-in-a-pot-LI3554444-3e05a52.jpg?quality=90&fit=700,466" },
-    { id: 5, name: "NPK", weight: "250 g", price: 200, img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=400&auto=format&fit=crop" },
-    { id: 6, name: "Vegetable based plant food", weight: "500 g", price: 1000, img: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=400&auto=format&fit=crop" },
-    { id: 7, name: "Neem Khali (Neem Cake)", weight: "500 g", price: 60, img: "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?q=80&w=400&auto=format&fit=crop" },
-    { id: 11, name: "Epsom Salt (Magnesium)", weight: "400 g", price: 80, img: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?q=80&w=400&auto=format&fit=crop" },
-    { id: 12, name: "Perlite", weight: "500 g", price: 150, img: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?q=80&w=400&auto=format&fit=crop" },
-    { id: 14, name: "DAP Fertilizer", weight: "250 g", price: 40, img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=400&auto=format&fit=crop" },
-    { id: 15, name: "Urea Fertilizer", weight: "500 g", price: 50, img: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=400&auto=format&fit=crop" },
-    { id: 16, name: "Cow Dung Manure", weight: "1 kg", price: 40, img: "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?q=80&w=400&auto=format&fit=crop" },
-    { id: 17, name: "Humic Acid Liquid", weight: "250 ml", price: 120, img: "https://images.unsplash.com/photo-1599839619722-39751411ea53?q=80&w=400&auto=format&fit=crop" },
-    { id: 18, name: "Wood Ash", weight: "500 g", price: 60, img: "https://images.unsplash.com/photo-1595801931086-538dc660946d?q=80&w=400&auto=format&fit=crop" },
-    { id: 19, name: "Trichoderma Viride", weight: "250 g", price: 100, img: "https://images.unsplash.com/photo-1592982537447-6f2a6a0a4b86?q=80&w=400&auto=format&fit=crop" },
-    { id: 20, name: "Pseudomonas Fluorescens", weight: "250 g", price: 110, img: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?q=80&w=400&auto=format&fit=crop" },
-    { id: 21, name: "Mycorrhiza Powder", weight: "100 g", price: 80, img: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?q=80&w=400&auto=format&fit=crop" }
-];
+import { useEffect } from "react";
 
 export default function Shop() {
     const { addToCart } = useCart();
-    const [addedIds, setAddedIds] = useState<number[]>([]);
+    const [addedIds, setAddedIds] = useState<string[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/products")
+            .then(res => res.json())
+            .then(data => {
+                if(data.products) setProducts(data.products);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
 
     const handleAddToCart = (p: any) => {
-        addToCart({ id: p.id, name: p.name, price: p.price, quantity: 1, img: p.img });
-        setAddedIds(prev => [...prev, p.id]);
+        addToCart({ id: p._id, name: p.name, price: p.price, quantity: 1, img: p.img });
+        setAddedIds(prev => [...prev, p._id]);
         setTimeout(() => {
-            setAddedIds(prev => prev.filter(id => id !== p.id));
+            setAddedIds(prev => prev.filter(id => id !== p._id));
         }, 2000);
     };
 
@@ -80,9 +78,10 @@ export default function Shop() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                        {products.map((p, i) => (
+                        {loading && <div className="col-span-4 text-center py-12 text-slate-500 font-bold">Loading Live Catalog...</div>}
+                        {!loading && products.map((p, i) => (
                             <motion.div
-                                key={p.id}
+                                key={p._id}
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
@@ -123,8 +122,8 @@ export default function Shop() {
                                             onClick={() => handleAddToCart(p)}
                                             className="text-sm font-bold text-green-600 hover:text-green-700 hover:underline flex items-center gap-1 group/btn cursor-pointer"
                                         >
-                                            {addedIds.includes(p.id) ? "Added!" : "Add to Cart"}
-                                            {!addedIds.includes(p.id) && <span className="group-hover/btn:translate-x-1 transition-transform">→</span>}
+                                            {addedIds.includes(p._id) ? "Added!" : "Add to Cart"}
+                                            {!addedIds.includes(p._id) && <span className="group-hover/btn:translate-x-1 transition-transform">→</span>}
                                         </button>
                                     </div>
                                 </div>

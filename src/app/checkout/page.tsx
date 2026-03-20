@@ -10,20 +10,72 @@ import { useEffect } from "react";
 export default function Checkout() {
     const { cart, cartTotal, clearCart } = useCart();
     const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+    useEffect(() => {
+        setMounted(true);
+        if (typeof window !== 'undefined') {
+            const query = new URLSearchParams(window.location.search);
+            if (query.get('success')) {
+                setStep(2);
+            }
+            if (query.get('canceled')) {
+                alert("Checkout canceled. Please try again.");
+            }
+        }
+    }, []);
 
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("upi"); // or 'card'
-
-    const handlePay = () => {
+    const [customer, setCustomer] = useState({ firstName: "Rakesh", lastName: "Sharma", email: "rakesh.farming@gmail.com", phone: "9876543210" });
+    const [shipping, setShipping] = useState({ address: "House No 42, Kisaan Marg", city: "Ludhiana", state: "Punjab", pinCode: "141001" });
+    
+    const handlePayToStripe = async () => {
         if (!mounted || cart.length === 0) return;
         setLoading(true);
-        setTimeout(() => {
+
+        try {
+            // 1. Securely save order to Database first
+            const formData = {
+                items: cart,
+                totalAmount: cartTotal,
+                customerInfo: customer,
+                shippingAddress: shipping
+            };
+            
+            const res = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData)
+            });
+            
+            if(!res.ok) {
+                alert("Failed to create Order Document in DB.");
+                setLoading(false);
+                return;
+            }
+
+            // 2. Generate Real Stripe Session securely on backend
+            const stripeRes = await fetch("/api/create-checkout-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items: cart, customerEmail: customer.email })
+            });
+            
+            const { url } = await stripeRes.json();
+            
+            if(url) {
+                // Clear cart locally before jumping domains securely
+                clearCart();
+                window.location.href = url;
+            } else {
+                alert("Stripe Session Failed to build. Check Keys.");
+                setLoading(false);
+            }
+        } catch (err) {
+            console.error(err);
             setLoading(false);
-            setStep(2);
-            clearCart();
-        }, 2000);
+            alert("Network error processing order!");
+        }
     };
 
     return (
@@ -61,24 +113,24 @@ export default function Checkout() {
                                         Shipping Information
                                     </h2>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="text" placeholder="First Name" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="Rakesh" />
-                                        <input type="text" placeholder="Last Name" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="Sharma" />
-                                        <input type="email" placeholder="Email Address" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="rakesh.farming@gmail.com" />
-                                        <input type="text" placeholder="Mobile Number (+91)" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="9876543210" />
-                                        <input type="text" placeholder="Address" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="House No 42, Kisaan Marg" />
-                                        <input type="text" placeholder="City" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="Ludhiana" />
+                                        <input type="text" placeholder="First Name" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={customer.firstName} onChange={e => setCustomer({...customer, firstName: e.target.value})} />
+                                        <input type="text" placeholder="Last Name" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={customer.lastName} onChange={e => setCustomer({...customer, lastName: e.target.value})} />
+                                        <input type="email" placeholder="Email Address" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
+                                        <input type="text" placeholder="Mobile Number (+91)" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
+                                        <input type="text" placeholder="Address" className="col-span-2 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={shipping.address} onChange={e => setShipping({...shipping, address: e.target.value})} />
+                                        <input type="text" placeholder="City" className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={shipping.city} onChange={e => setShipping({...shipping, city: e.target.value})} />
 
-                                        <select className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors appearance-none">
-                                            <option>Punjab</option>
-                                            <option>Haryana</option>
-                                            <option>Uttar Pradesh</option>
-                                            <option>Maharashtra</option>
-                                            <option>Gujarat</option>
-                                            <option>Madhya Pradesh</option>
-                                            <option>Karnataka</option>
+                                        <select value={shipping.state} onChange={e => setShipping({...shipping, state: e.target.value})} className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors appearance-none">
+                                            <option value="Punjab">Punjab</option>
+                                            <option value="Haryana">Haryana</option>
+                                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                            <option value="Maharashtra">Maharashtra</option>
+                                            <option value="Gujarat">Gujarat</option>
+                                            <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                            <option value="Karnataka">Karnataka</option>
                                         </select>
 
-                                        <input type="text" placeholder="PIN Code" className="col-span-2 md:col-span-1 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" defaultValue="141001" />
+                                        <input type="text" placeholder="PIN Code" className="col-span-2 md:col-span-1 border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 ring-green-500/50 focus:bg-white transition-colors" value={shipping.pinCode} onChange={e => setShipping({...shipping, pinCode: e.target.value})} />
                                     </div>
                                 </div>
 
@@ -133,7 +185,7 @@ export default function Checkout() {
                                 </div>
 
                                 <button
-                                    onClick={handlePay}
+                                    onClick={handlePayToStripe}
                                     className="w-full bg-slate-900 hover:bg-slate-800 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-slate-900/20 transition-all flex items-center justify-center gap-3 mt-4"
                                 >
                                     {loading ? <span className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></span> : <>Pay ₹{mounted ? cartTotal : 499} <ArrowLeft className="w-5 h-5 rotate-180" /></>}
@@ -213,13 +265,13 @@ export default function Checkout() {
                             </div>
                             <h2 className="text-4xl font-black mb-4">Order Confirmed!</h2>
                             <p className="text-lg text-slate-600 mb-8">
-                                Your SoilGuard Bio Soil Kit is on its way. Expect delivery via Delhivery in 3-5 business days. We&apos;ve sent the receipt to rakesh.farming@gmail.com and WhatsApp +91 9876543210.
+                                Your items are confirmed and synced to the database. Expect delivery via Delhivery in 3-5 business days. We&apos;ve sent the receipt to {customer.email}.
                             </p>
 
                             <div className="bg-slate-50 w-full p-6 rounded-2xl mb-10 border border-slate-200 shadow-sm flex items-center justify-between">
                                 <div className="text-left">
                                     <h4 className="font-bold text-slate-800 mb-1">Order #SG-9824-IND</h4>
-                                    <p className="text-sm text-slate-500">Placed on Oct 24</p>
+                                    <p className="text-sm text-slate-500">Placed on {new Date().toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-xs">Processing</span>
@@ -234,6 +286,9 @@ export default function Checkout() {
                     )}
                 </AnimatePresence>
             </main>
+
+
+
         </div>
     );
 }

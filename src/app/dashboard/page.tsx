@@ -7,7 +7,7 @@ import {
     LineElement, Title, Tooltip, Filler, Legend
 } from 'chart.js';
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, LogOut, Bell, RefreshCw, Activity, Droplets, Leaf, Shield, CheckCircle, Sparkles } from "lucide-react";
+import { AlertCircle, LogOut, Bell, RefreshCw, Activity, Droplets, Leaf, Shield, CheckCircle, Sparkles, Truck, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Chatbot from "@/components/Chatbot";
 
@@ -16,6 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 export default function Dashboard() {
     const [mounted, setMounted] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [orders, setOrders] = useState<any[]>([]);
 
     // Core telemetry
     const [data, setData] = useState({
@@ -73,6 +74,13 @@ export default function Dashboard() {
             });
             setLastUpdated(new Date().toLocaleTimeString());
         }, 10000);
+
+        // Fetch user personal orders
+        fetch('/api/orders')
+            .then(res => res.json())
+            .then(data => {
+                if (data.orders) setOrders(data.orders);
+            }).catch(e => console.error("Error fetching orders:", e));
 
         return () => clearInterval(interval);
     }, []);
@@ -297,6 +305,53 @@ export default function Dashboard() {
 
                     </div>
 
+                </div>
+
+                {/* E-Commerce Order Tracking Section */}
+                <div className="mt-8 bg-white border border-slate-200 rounded-[2rem] p-8 shadow-xl shadow-slate-200/50">
+                    <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+                        <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                            <ShoppingBag className="w-6 h-6 text-indigo-500" />
+                            Recent Purchases & Active Shipments
+                        </h3>
+                        {orders.length > 0 && (
+                            <Link href="/shop" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-4 py-2 rounded-full">Explore Shop →</Link>
+                        )}
+                    </div>
+
+                    {orders.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-20 h-20 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4">
+                                <Truck className="w-8 h-8 opacity-50" />
+                            </div>
+                            <h4 className="text-lg font-bold text-slate-700 mb-2">No active orders found</h4>
+                            <p className="text-slate-500 max-w-sm font-medium mb-6">You haven't purchased any smart farming products or fertilizers yet.</p>
+                            <Link href="/shop" className="px-6 py-3 bg-slate-900 text-white hover:bg-slate-800 font-bold rounded-full transition-colors shadow-lg shadow-slate-900/20">
+                                Visit the Store
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {orders.map((order, i) => (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} key={order._id} className="flex gap-6 items-center p-5 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100/50 hover:shadow-sm transition-all shadow-slate-200/30">
+                                    <div className="w-16 h-16 shrink-0 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                                        <Truck className={`w-8 h-8 ${order.status === 'Delivered' ? 'text-emerald-500' : 'text-amber-500'}`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-black uppercase text-slate-400 tracking-widest">Order #{order._id.substring(order._id.length - 6)}</span>
+                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${order.status === 'Delivered' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{order.status}</span>
+                                        </div>
+                                        <h4 className="font-bold text-slate-900 truncate">{order.items[0]?.name} {order.items.length > 1 && `+${order.items.length - 1} more`}</h4>
+                                        <div className="flex justify-between items-end mt-2">
+                                            <span className="text-xs font-medium text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</span>
+                                            <span className="font-black text-slate-900">₹{order.totalAmount.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </main>
