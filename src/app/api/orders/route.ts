@@ -14,9 +14,15 @@ export async function GET(req: Request) {
 
     await connectToDatabase();
 
-    const orders = await Order.find({ user: session.user.id })
-      .sort({ createdAt: -1 })
-      .limit(5); // Get their 5 most recent orders
+    const url = new URL(req.url);
+    const limitParam = url.searchParams.get('limit');
+    let query = Order.find({ user: session.user.id }).sort({ createdAt: -1 });
+    
+    if (limitParam) {
+        query = query.limit(parseInt(limitParam, 10));
+    }
+
+    const orders = await query;
 
     return NextResponse.json({ orders });
   } catch (error: any) {

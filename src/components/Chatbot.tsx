@@ -1,47 +1,71 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, X, Send, Bot, Globe, ChevronDown } from "lucide-react";
+import { MessageSquare, X, Send, Sprout, Globe, ChevronDown, Paperclip, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'ai' | 'user', text: string }[]>([
-        { role: 'ai', text: 'Hello! I am Soil Guard, your AI agricultural expert. I can communicate in any language and assist you with anything from soil health, crop yields, to the meaning of life. How can I help? (नमस्ते / வணக்கம் / నమస్కారం / নমস্কার)' }
+        { role: 'ai', text: 'Hello! I am Krishi Sathi, your AI agricultural expert. I can communicate in any language and assist you with anything from soil health to crop yields. How can I help? (नमस्ते / வணக்கம் / నమస్కారం / নমস্কার)' }
     ]);
     const [input, setInput] = useState("");
+    const [loading, setLoading] = useState(false);
     const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState("English");
 
     const languages = ["English", "Hindi (हिंदी)", "Bengali (বাংলা)", "Tamil (தமிழ்)", "Telugu (తెలుగు)", "Marathi (मराठी)"];
+    
+    const [attachments, setAttachments] = useState<{name: string, data: string}[]>([]);
 
-    const handleSend = () => {
-        if (!input.trim()) return;
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (file.type !== 'application/pdf') {
+                    alert('Only PDF reports are supported.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                   const base64 = (reader.result as string).split(',')[1];
+                   setAttachments(prev => [...prev, { name: file.name, data: base64 }]);
+                };
+            });
+        }
+    };
+
+    const handleSend = async () => {
+        if (!input.trim() || loading) return;
+        
         const userInput = input;
-        setMessages(prev => [...prev, { role: 'user', text: input }]);
+        const currentAttachments = [...attachments];
+        
+        let userMessageUI = userInput;
+        if (currentAttachments.length > 0) {
+            userMessageUI += ` [Attached ${currentAttachments.length} PDF(s)]`;
+        }
+        
+        setMessages(prev => [...prev, { role: 'user', text: userMessageUI }]);
         setInput("");
+        setAttachments([]);
+        setLoading(true);
 
-        // Simulate smart generic AI response
-        setTimeout(() => {
-            let reply = "";
-            const lowerInput = userInput.toLowerCase();
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userInput, language: selectedLanguage, pdfDataArray: currentAttachments })
+            });
 
-            if (lowerInput.includes('weather') || lowerInput.includes('rain')) {
-                reply = "Looking at the forecast, there's a 40% chance of rain in your region tomorrow. Good for your newly planted seeds!";
-            } else if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-                reply = selectedLanguage === "Hindi (हिंदी)" ? "नमस्ते! मैं सॉइल गार्ड हूँ।" : "Hello there! Soil Guard at your service.";
-            } else if (lowerInput.includes('joke')) {
-                reply = "Why did the scarecrow win an award? Because he was outstanding in his field! 🌾";
-            } else if (lowerInput.includes('meaning of life') || lowerInput.includes('who are you')) {
-                reply = "I am Soil Guard, an AI built to revolutionize farming! I exist to make sure your soil thrives, but I enjoy a good philosophical chat too.";
-            } else if (selectedLanguage !== "English") {
-                reply = `(Translating analysis to ${selectedLanguage}) Based on your query, Soil Guard suggests maintaining a pH level of 6.5 for optimal nutrient absorption. Let me know if you need specific fertilizer recommendations.`;
-            } else {
-                reply = "That's an interesting point! While my specialty is NPK levels and soil moisture, my AI engine can process multi-disciplinary knowledge. What else would you like to discuss?";
-            }
-
-            setMessages(prev => [...prev, { role: 'ai', text: reply }]);
-        }, 1000);
+            const data = await response.json();
+            setMessages(prev => [...prev, { role: 'ai', text: data.reply || "Sorry, I couldn't understand that." }]);
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'ai', text: "Network error. Please try again later." }]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -61,11 +85,11 @@ export default function Chatbot() {
                             {/* Header */}
                             <div className="bg-gradient-to-r from-green-600 to-green-500 p-4 text-white flex items-center justify-between shrink-0">
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-white p-2 rounded-full shadow-sm">
-                                        <img src="/logo.png" alt="SoilGuard" className="w-5 h-5" />
+                                    <div className="bg-white p-2 text-green-600 rounded-full shadow-sm flex items-center justify-center">
+                                        <Sprout className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm">Soil Guard AI</h3>
+                                        <h3 className="font-bold text-sm">Krishi Sathi</h3>
                                         <div className="flex items-center gap-1">
                                             <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
                                             <p className="text-xs text-green-100">Online | Smart Agriculture Expert</p>
@@ -125,23 +149,56 @@ export default function Chatbot() {
                                         </div>
                                     </div>
                                 ))}
+                                {loading && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-white border-slate-200 border text-slate-800 rounded-2xl rounded-bl-sm shadow-sm p-3.5 text-sm flex gap-1 items-center">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></span>
+                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Input Area */}
                             <div className="p-3 border-t border-slate-200 bg-white shrink-0">
+                                {/* Attachments preview */}
+                                {attachments.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {attachments.map((a, i) => (
+                                            <div key={i} className="flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-1 rounded-md border border-green-200">
+                                                <FileText className="w-3 h-3 shrink-0" />
+                                                <span className="truncate max-w-[120px]">{a.name}</span>
+                                                <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-500 shrink-0"><X className="w-3 h-3" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-full overflow-hidden focus-within:ring-2 ring-green-500/50 focus-within:bg-white transition-all shadow-sm">
+                                    <input 
+                                       type="file" 
+                                       id="file-upload" 
+                                       accept="application/pdf" 
+                                       multiple 
+                                       className="hidden" 
+                                       onChange={handleFileUpload} 
+                                    />
+                                    <label htmlFor="file-upload" className="p-2.5 ml-1 cursor-pointer text-slate-400 hover:text-green-600 transition-colors">
+                                        <Paperclip className="w-4 h-4" />
+                                    </label>
                                     <input
                                         type="text"
-                                        placeholder="Ask about crops, NPK, fertilizer, life..."
-                                        className="w-full bg-transparent px-4 py-3 text-sm focus:outline-none text-slate-800 placeholder-slate-400"
+                                        placeholder="Ask or attach PDF reports..."
+                                        className="w-full bg-transparent px-2 py-3 text-sm focus:outline-none text-slate-800 placeholder-slate-400"
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+                                        disabled={loading}
                                     />
                                     <button
-                                        disabled={!input.trim()}
+                                        disabled={(!input.trim() && attachments.length === 0) || loading}
                                         onClick={handleSend}
-                                        className={`p-2.5 mr-1 rounded-full flex items-center justify-center transition-all ${input.trim() ? 'bg-green-500 text-white shadow-md hover:scale-105' : 'bg-transparent text-slate-300'
+                                        className={`p-2.5 mr-1 rounded-full flex items-center justify-center transition-all ${(input.trim() || attachments.length > 0) && !loading ? 'bg-green-500 text-white shadow-md hover:scale-105' : 'bg-transparent text-slate-300'
                                             }`}
                                     >
                                         <Send className="w-4 h-4 ml-0.5" />
@@ -159,7 +216,7 @@ export default function Chatbot() {
                     whileTap={{ scale: 0.95 }}
                     className="bg-green-600 hover:bg-green-500 text-white p-4 justify-center items-center shadow-2xl rounded-full flex z-50 transition-colors relative"
                 >
-                    {isOpen ? <X className="w-7 h-7" /> : <Bot className="w-7 h-7" />}
+                    {isOpen ? <X className="w-7 h-7" /> : <Sprout className="w-7 h-7" />}
 
                     {/* Sparkles decoration for AI */}
                     {!isOpen && (

@@ -7,7 +7,7 @@ import {
     LineElement, Title, Tooltip, Filler, Legend
 } from 'chart.js';
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, LogOut, Bell, RefreshCw, Activity, Droplets, Leaf, Shield, CheckCircle, Sparkles, Truck, ShoppingBag } from "lucide-react";
+import { AlertCircle, LogOut, Bell, RefreshCw, Activity, Droplets, Leaf, Shield, CheckCircle, Sparkles, Truck, ShoppingBag, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Chatbot from "@/components/Chatbot";
 
@@ -16,6 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 export default function Dashboard() {
     const [mounted, setMounted] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
 
     // Core telemetry
@@ -76,7 +77,7 @@ export default function Dashboard() {
         }, 10000);
 
         // Fetch user personal orders
-        fetch('/api/orders')
+        fetch('/api/orders?limit=5')
             .then(res => res.json())
             .then(data => {
                 if (data.orders) setOrders(data.orders);
@@ -90,6 +91,62 @@ export default function Dashboard() {
         setLastUpdated(new Date().toLocaleTimeString());
         await generateAISummary(data);
         setRefreshing(false);
+    };
+
+    const handleDownloadPdf = async () => {
+        setIsDownloading(true);
+        try {
+            // @ts-ignore
+            const domtoimage = (await import('dom-to-image-more')).default;
+            
+            const jsPDFModule = await import('jspdf');
+            const JsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF;
+
+            const element = document.getElementById('main-dashboard-report');
+            if (!element) {
+                setIsDownloading(false);
+                return;
+            }
+            
+            const header = document.createElement('div');
+            header.innerHTML = `
+              <div style="padding: 20px; text-align: center; border-bottom: 2px solid #10b981; margin-bottom: 20px; font-family: sans-serif;">
+                <h1 style="color: #064e3b; margin: 0; font-size: 24px;">SoilGuard Professional Dashboard Report</h1>
+                <p style="color: #64748b; margin: 5px 0 0 0;">Report Generated: ${new Date().toLocaleString()} | Context: Alpha Zone</p>
+              </div>
+            `;
+            element.insertBefore(header, element.firstChild);
+
+            // Temporarily hide the download button to prevent it from appearing in the PDF
+            const btn = document.getElementById('download-pdf-btn');
+            if (btn) btn.style.display = 'none';
+
+            try {
+              const imgData = await domtoimage.toPng(element, { bgcolor: '#f8fafc' });
+              const pdf = new JsPDF('p', 'mm', 'a4');
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              
+              const img = new Image();
+              img.src = imgData;
+              
+              await new Promise((resolve) => {
+                img.onload = resolve;
+              });
+
+              const pdfHeight = (img.height * pdfWidth) / img.width;
+              
+              pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+              pdf.save('SoilGuard_Dashboard_Report.pdf');
+            } finally {
+              element.removeChild(header);
+              if (btn) btn.style.display = 'flex';
+            }
+        } catch (err: any) {
+            console.error("PDF Generate Error", err);
+            alert("Failed to generate PDF: " + (err?.message || err));
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     if (!mounted) return <div className="min-h-screen bg-slate-50"></div>;
@@ -159,7 +216,7 @@ export default function Dashboard() {
             <div className="fixed bottom-20 right-10 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none"></div>
 
             {/* Main Content */}
-            <main className="container mx-auto px-4 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out relative z-10">
+            <main id="main-dashboard-report" className="container mx-auto px-4 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out relative z-10">
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
@@ -177,16 +234,27 @@ export default function Dashboard() {
                         </p>
                     </div>
 
-                    <AnimatePresence>
-                        {data.isError && (
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl flex items-center gap-3 shadow-sm"
-                            >
-                                <AlertCircle className="w-5 h-5 shrink-0" />
-                                <span className="text-sm font-bold">Probe Disconnected: Sensor 4</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    <div className="flex flex-col items-end gap-3">
+                        <button 
+                            id="download-pdf-btn"
+                            disabled={isDownloading}
+                            onClick={handleDownloadPdf}
+                            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20"
+                        >
+                            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                            {isDownloading ? "Generating PDF..." : "Download PDF Report"}
+                        </button>
+                        <AnimatePresence>
+                            {data.isError && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                                    className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl flex items-center gap-3 shadow-sm"
+                                >
+                                    <AlertCircle className="w-5 h-5 shrink-0" />
+                                    <span className="text-sm font-bold">Probe Disconnected: Sensor 4</span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
                 {/* AI Gemini Summarization Panel */}
@@ -315,7 +383,10 @@ export default function Dashboard() {
                             Recent Purchases & Active Shipments
                         </h3>
                         {orders.length > 0 && (
-                            <Link href="/shop" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-4 py-2 rounded-full">Explore Shop →</Link>
+                            <div className="flex items-center gap-3">
+                                <Link href="/shop" className="text-sm font-bold text-slate-600 hover:text-slate-800 transition-colors bg-slate-100 px-4 py-2 rounded-full">Shop</Link>
+                                <Link href="/orders" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-4 py-2 rounded-full">Track Orders →</Link>
+                            </div>
                         )}
                     </div>
 

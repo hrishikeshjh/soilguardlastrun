@@ -155,7 +155,7 @@ export default function About() {
                             </div>
                             <div>
                                 <span className="text-green-600 font-bold uppercase tracking-widest text-sm mb-2 block">Founder & CEO</span>
-                                <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">Sankhacheta Pain</h2>
+                                <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">Sankhacheta & Team</h2>
                                 <div className="space-y-4 text-slate-600 font-medium leading-relaxed">
                                     <p>
                                         Sankhacheta founded SoilGuard with the vision of bridging the gap between science, technology, and rural agriculture. Her mission is to make soil health solutions affordable, accessible, and understandable for every farmer — especially small and marginal communities.
@@ -163,12 +163,12 @@ export default function About() {
                                     <p>Under her leadership, SoilGuard has:</p>
                                     <ul className="mb-4 space-y-2">
                                         <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Launched affordable Bio Soil Kits</li>
-                                        <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Developed a working advisory chatbot</li>
+                                        <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />Developing all types of soil testing kits</li>
                                         <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Built a digital platform for farmer support</li>
                                         <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Revived 300+ trees through bio-soil care initiatives</li>
                                     </ul>
                                     <p className="font-bold text-slate-800">
-                                        Her vision is to transform SoilGuard into India’s leading soil intelligence and regenerative agriculture platform.
+                                        Mriganka Bhowmick and Hrishikesh Jha are also working specially in product development and perfection to make SoilGuard a success.
                                     </p>
                                 </div>
                             </div>
@@ -184,7 +184,7 @@ export default function About() {
                                 className="bg-slate-900 text-white border border-slate-800 rounded-3xl p-8 shadow-xl"
                             >
                                 <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                                    <MapPin className="text-green-500 w-6 h-6" /> Our HQ Location
+                                    <MapPin className="text-green-500 w-6 h-6" /> Our Location
                                 </h3>
                                 <div className="space-y-6">
                                     <div className="flex items-start gap-4">
