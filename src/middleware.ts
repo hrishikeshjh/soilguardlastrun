@@ -6,10 +6,9 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 
-    // If accessing admin routes, check for Admin role
+    // Admin-only route protection
     if (pathname.startsWith("/admin")) {
-      if (!token || token.role !== "Admin") {
-        // Redirect non-admin users away from admin panel
+      if (token?.role !== "Admin") {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
     }
@@ -18,8 +17,11 @@ export default withAuth(
   },
   {
     callbacks: {
-      // User must be logged in (have a valid token) to proceed
       authorized: ({ token }) => !!token,
+    },
+    secret: process.env.NEXTAUTH_SECRET,
+    pages: {
+      signIn: "/login",
     },
   }
 );
@@ -28,7 +30,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/admin/:path*",
-    "/api/reports/:path*",
-    "/api/users/:path*",
+    "/api/admin/:path*",
   ],
 };

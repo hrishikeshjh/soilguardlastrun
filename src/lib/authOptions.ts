@@ -62,21 +62,34 @@ export const authOptions: NextAuthOptions = {
             role: "Customer"
           });
         }
+        // Attach role to user object so it's available in the jwt callback
         user.role = dbUser.role;
         user.id = dbUser._id.toString();
       }
       return true;
     },
     async jwt({ token, user, trigger, session }) {
-      // Persist the user role and ID to the token
+      // First time user signs in
       if (user) {
         token.id = user.id;
         token.role = user.role;
       }
-      // Handle role updates if needed via session update
+      
+      // Periodic check or manual trigger
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
+
+      // If token role is missing for some reason, try to fetch it from DB (fallback)
+      if (!token.role && token.email) {
+        await connectToDatabase();
+        const dbUser = await User.findOne({ email: token.email });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.id = dbUser._id.toString();
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
