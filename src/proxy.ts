@@ -1,4 +1,6 @@
-export { default } from "next-auth/middleware";
+import { withAuth } from "next-auth/middleware";
+
+export default withAuth;
 
 // Define which routes should be protected by the middleware
 export const config = {
