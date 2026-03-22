@@ -15,8 +15,8 @@ export default function Checkout() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("upi"); // or 'card'
-    const [customer, setCustomer] = useState({ firstName: "Rakesh", lastName: "Sharma", email: "rakesh.farming@gmail.com", phone: "9876543210" });
-    const [shipping, setShipping] = useState({ address: "House No 42, Kisaan Marg", city: "Ludhiana", state: "Punjab", pinCode: "141001" });
+    const [customer, setCustomer] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+    const [shipping, setShipping] = useState({ address: "", city: "", state: "Andhra Pradesh", pinCode: "" });
 
     const handlePay = async () => {
         if (!mounted || cart.length === 0) return;
@@ -273,7 +273,7 @@ export default function Checkout() {
                             </div>
                             <h2 className="text-4xl font-black mb-4">Order Confirmed!</h2>
                             <p className="text-lg text-slate-600 mb-8">
-                                Your SoilGuard Bio Soil Kit is on its way. Expect delivery via Delhivery in 3-5 business days. We&apos;ve sent the receipt to rakesh.farming@gmail.com and WhatsApp +91 9876543210.
+                                Your SoilGuard Bio Soil Kit is on its way. Expect delivery via Delhivery in 3-5 business days. We&apos;ve sent the order confirmation to <strong>{customer.email || "your email"}</strong>{customer.phone && <> and WhatsApp <strong>+91 {customer.phone}</strong></>}.
                             </p>
 
                             <div className="bg-slate-50 w-full p-6 rounded-2xl mb-10 border border-slate-200 shadow-sm flex items-center justify-between">
