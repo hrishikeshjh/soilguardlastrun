@@ -34,6 +34,27 @@ export default function OrdersPage() {
         }
     }, [status]);
 
+    const handleCancelOrder = async (orderId: string) => {
+        if (!confirm("Are you sure you want to cancel this order? This cannot be undone.")) return;
+
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, action: 'cancel' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: 'Cancelled' } : o));
+            } else {
+                alert("Failed to cancel: " + (data.error || "Unknown error"));
+            }
+        } catch (err) {
+            console.error("Cancel order error:", err);
+            alert("An error occurred. Please try again.");
+        }
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'Processing': return <Clock className="w-5 h-5 text-blue-500" />;
@@ -210,7 +231,23 @@ export default function OrdersPage() {
                                                 </div>
                                             </div>
                                         </div>
-
+                                        {/* Order Actions - New Section */}
+                                        <div className="md:col-span-2 border-t border-slate-100 pt-6 flex justify-end gap-4">
+                                            {order.status === 'Processing' && (
+                                                <button 
+                                                    onClick={() => handleCancelOrder(order._id)}
+                                                    className="px-6 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-all border border-rose-100 text-sm"
+                                                >
+                                                    Cancel Order
+                                                </button>
+                                            )}
+                                            <button 
+                                                className="px-6 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-xl transition-all border border-indigo-100 text-sm"
+                                                onClick={() => window.print()}
+                                            >
+                                                Print Invoice
+                                            </button>
+                                        </div>
                                     </div>
                                 </motion.div>
                             ))}

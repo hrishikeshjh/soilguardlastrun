@@ -58,6 +58,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to delete this order? This action cannot be undone and will remove it from the database.")) return;
+    
+    // Optimistic Update
+    setOrders(prev => prev.filter(o => o._id !== orderId));
+    
+    try {
+      const res = await fetch(`/api/admin/orders?orderId=${orderId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert("Failed to delete order: " + data.error);
+        // Re-fetch orders if failed to keep UI in sync
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Failed to delete order:", err);
+    }
+  };
+
   const openModal = (product: any = null) => {
     if(product) {
       setEditingProduct(product);
@@ -242,7 +263,14 @@ export default function AdminDashboard() {
                             <option value="Shipped">Shipped</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
-                         </select>
+                          </select>
+                          <button 
+                            onClick={() => handleDeleteOrder(order._id)}
+                            className="p-1 px-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-md hover:bg-rose-100 transition-colors"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                       </div>
                     </div>
                     <div className="flex justify-between items-start">

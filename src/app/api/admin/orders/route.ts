@@ -66,3 +66,33 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.role !== "Admin") {
+      return NextResponse.json({ error: "Access Denied" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const orderId = searchParams.get('orderId');
+
+    if (!orderId) {
+      return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+
+    if (!deletedOrder) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Order deleted successfully" });
+
+  } catch (error: any) {
+    console.error("Order deletion error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
