@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
         // If API key is present, use Google Generative AI
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         
         const systemPrompt = `You are Krishi Sathi, an expert agricultural AI assistant for SoilGuard. 
 THOROUGHNESS IS CRITICAL: If the user provides a list of questions, a questionnaire, or multiple inquiries, you MUST answer EACH and EVERY one of them in detail. Do not skip any part of the user's message.
